@@ -1,86 +1,106 @@
 package com.br.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.br.exception.ResourceNotFoundException;
+import com.br.model.ItemPedido;
 import com.br.model.Pedido;
+import com.br.model.Produto;
 import com.br.repository.PedidoRepository;
+import com.br.repository.ProdutoRepository;
 
 @RequestMapping("/cpedido/")
 @RestController
-@CrossOrigin(origins="*")
+@CrossOrigin(origins = "*")
 public class PedidoController {
 
-	// Cria o repositório JPA de forma automática e autogerenciada
-	@Autowired
-	private PedidoRepository prep;
+    @Autowired
+    private PedidoRepository prep;
 
-	// Método Listar - trazer todos os pedidos do banco
-	@GetMapping("/pedido")
-	public List<Pedido> listar() {
-		return this.prep.findAll(Sort.by(Sort.Direction.DESC, "id_pedido"));
-	}
+    @Autowired
+    private ProdutoRepository produtoRepository;
 
-	// Método Consultar - trazer um pedido, caso exista, pelo id
-	@GetMapping("/pedido/{id}")
-	public ResponseEntity<Pedido> consultar(@PathVariable Long id) {
+    @GetMapping("/pedido")
+    public List<Pedido> listar() {
+        return this.prep.findAll(Sort.by(Sort.Direction.DESC, "id_pedido"));
+    }
 
-		Pedido pedido = this.prep.findById(id).orElseThrow(() ->
-			new ResourceNotFoundException("Pedido não encontrado " + id)
-		);
+    @GetMapping("/pedido/{id}")
+    public ResponseEntity<Pedido> consultar(@PathVariable Long id) {
+        Pedido pedido = this.prep.findById(id).orElseThrow(() ->
+            new ResourceNotFoundException("Pedido não encontrado " + id)
+        );
 
-		return ResponseEntity.ok(pedido);
-	}
+        return ResponseEntity.ok(pedido);
+    }
 
-	// Método Inserir - insere um pedido
-	@PostMapping("/pedido")
-	public Pedido inserir(@RequestBody Pedido pedido) {
-		return this.prep.save(pedido);
-	}
+    @PostMapping("/pedido")
+    public Pedido inserir(@RequestBody Pedido pedido) {
+        prepararPedido(pedido);
+        return this.prep.save(pedido);
+    }
 
-	// Método Alterar - altera um pedido existente
-	@PutMapping("/pedido/{id}")
-	public ResponseEntity<Pedido> alterar(@PathVariable Long id, @RequestBody Pedido pedido) {
+    @PutMapping("/pedido/{id}")
+    public ResponseEntity<Pedido> alterar(@PathVariable Long id, @RequestBody Pedido pedido) {
+        Pedido pedidoConsultado = this.prep.findById(id).orElseThrow(() ->
+            new ResourceNotFoundException("Pedido não encontrado " + id)
+        );
 
-		Pedido pedidoConsultado = this.prep.findById(id).orElseThrow(() ->
-			new ResourceNotFoundException("Pedido não encontrado " + id)
-		);
+        pedidoConsultado.setNumeroPedido(pedido.getNumeroPedido());
+        pedidoConsultado.setDataPedido(pedido.getDataPedido());
+        pedidoConsultado.setStatus(pedido.getStatus());
+        pedidoConsultado.setEntrega(pedido.getEntrega());
+        pedidoConsultado.setObservacao(pedido.getObservacao());
+        pedidoConsultado.setCliente(pedido.getCliente());
 
-		pedidoConsultado.setNumeroPedido(pedido.getNumeroPedido());
-		pedidoConsultado.setDataPedido(pedido.getDataPedido());
-		pedidoConsultado.setStatus(pedido.getStatus());
-		pedidoConsultado.setValorTotal(pedido.getValorTotal());
-		pedidoConsultado.setEntrega(pedido.getEntrega());
-		pedidoConsultado.setObservacao(pedido.getObservacao());
-		pedidoConsultado.setCliente(pedido.getCliente());
+        pedidoConsultado.getItens().clear();
+        pedidoConsultado.setItens(pedido.getItens());
 
-		Pedido pedidoAtualizado = this.prep.save(pedidoConsultado);
-		return ResponseEntity.ok(pedidoAtualizado);
-	}
+        prepararPedido(pedidoConsultado);
 
-	// Método Excluir - exclui um pedido do banco
-	@DeleteMapping("/pedido/{id}")
-	public ResponseEntity<String> excluir(@PathVariable Long id) {
+        Pedido pedidoAtualizado = this.prep.save(pedidoConsultado);
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
 
-		Pedido pedido = this.prep.findById(id).orElseThrow(() ->
-			new ResourceNotFoundException("Pedido não encontrado " + id)
-		);
+    @DeleteMapping("/pedido/{id}")
+    public ResponseEntity<String> excluir(@PathVariable Long id) {
+        Pedido pedido = this.prep.findById(id).orElseThrow(() ->
+            new ResourceNotFoundException("Pedido não encontrado " + id)
+        );
 
-		this.prep.delete(pedido);
+        this.prep.delete(pedido);
 
-		return ResponseEntity.ok("Pedido excluído com sucesso!");
-	}
+        return ResponseEntity.ok("Pedido excluído com sucesso!");
+    }
+
+    private void prepararPedido(Pedido pedido) {
+        double total = 0.0;
+        List<ItemPedido> itensPreparados = new ArrayList<>();
+
+        for (ItemPedido item : pedido.getItens()) {
+            Produto produtoBanco = produtoRepository.findById(item.getProduto().getId_produto())
+                .orElseThrow(() ->
+                    new ResourceNotFoundException("Produto não encontrado " + item.getProduto().getId_produto())
+                );
+
+            item.setPedido(pedido);
+            item.setProduto(produtoBanco);
+            item.setPrecoUnitario(produtoBanco.getPreco());
+
+            double subtotal = produtoBanco.getPreco() * item.getQuantidade();
+            item.setSubtotal(subtotal);
+
+            total += subtotal;
+            itensPreparados.add(item);
+        }
+
+        pedido.setItens(itensPreparados);
+        pedido.setValorTotal(total);
+    }
 }

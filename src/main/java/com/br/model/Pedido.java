@@ -19,18 +19,19 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "pedido")
+@Table(name = "pedido") // Criação da tabela pedido
 public class Pedido {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id_pedido;
-
+    
+  //Criação das colunas na tabela pedido
     @Column(name = "numero_pedido")
     private String numeroPedido;
 
     @Column(name = "data_pedido")
-    @JsonFormat(pattern = "yyyy-MM-dd")
+    @JsonFormat(pattern = "yyyy-MM-dd") // Formata data e hora
     private Date dataPedido;
 
     @Column(name = "status")
@@ -44,10 +45,12 @@ public class Pedido {
 
     @Column(name = "observacao")
     private String observacao;
-
+    
+ // Relacionamento Um para muitos ( Vários pedidos para um cliente )
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     private Cliente cliente;
-
+    
+ // Relacionamento muitos-para-um ( um pedido para vários itens pedido )
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<ItemPedido> itens = new ArrayList<>();

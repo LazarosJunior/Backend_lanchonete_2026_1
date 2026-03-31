@@ -13,13 +13,15 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "item_pedido")
+@Table(name = "item_pedido") // Criação de uma tabela/Entidade auxiliar
 public class ItemPedido {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id_item_pedido;
-
+    
+ // Relacionamento muitos-para-um com Pedido
+    
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @JoinColumn(name = "id_pedido")
     @JsonBackReference
@@ -38,10 +40,11 @@ public class ItemPedido {
     @Column(name = "subtotal")
     private Double subtotal;
 
-    public ItemPedido() {
+  //Contrutor padrao
+        public ItemPedido() {
         super();
     }
-
+  //Construtor com todos atributos
     public Long getId_item_pedido() {
         return id_item_pedido;
     }
@@ -90,3 +93,5 @@ public class ItemPedido {
         this.subtotal = subtotal;
     }
 }
+
+//Fim da Classe

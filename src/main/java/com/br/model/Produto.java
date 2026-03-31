@@ -11,7 +11,7 @@ import jakarta.persistence.Table;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Entity
-@Table(name="produto") // Criação da tabela Produto no PostgreSQL
+@Table(name="produto") // Criação da tabela Produto
 public class Produto {
 	
 	@Id
@@ -43,7 +43,7 @@ public class Produto {
 		super();
 	}
 	
-	// Construtor com parâmetros
+	// Construtor dos atributos
 	public Produto(Long id_produto, String nome, String descricao, Double preco, Integer estoque, Boolean disponivel,
 			Date dataCadastro) {
 		super();
